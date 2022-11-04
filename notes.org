@@ -1,0 +1,108 @@
+* Notes
+I set this lab up with these commands:
+#+begin_src ruby
+bundle install
+rails db:migrate db:seed
+npm install --prefix client
+#+end_src
+
+I then started the backend of this lab with the 'rails s' command.
+
+I then started the frontend of this lab with the 'npm start --prefix client' command.
+
+<2022-11-04 Fri 13:13>: I had to fix the start and build scripts by using the '--openssl-legacy-provider' to accommodate for the fact that Flatiron didn't fix their lab accordingly to handle the legacy SSL being used:
+#+begin_src json
+  "scripts": {
+    "start": "PORT=4000 react-scripts --openssl-legacy-provider start",
+    "build": "react-scripts --openssl-legacy-provider build",
+#+end_src
+
+<2022-11-04 Fri 13:19>: These are the requirements for this assignment:
+
+Sessions:
+- Generate these routes:
+- POST /login: run the SessionsController#create method
+- DELETE /logout: run the SessionsController#destroy method
+- Create a sessions controller.
+- Note: If you use the generators to generate your controllers, be sure to pass the --no-test-framework flag to avoid generating unneeded files: rails g controller Sessions --no-test-framework
+- Make a SessionsController#create method. It should:
+- Find a user in the database using the username from params
+- Save the user's ID to the session hash
+- Return the user as a JSON object
+- Make a SessionsController#destroy method. It should:
+- Remove the user ID from the session hash
+- Return an empty response with a 204 No Content status code
+
+Users:
+- Generate these routes:
+- GET /me: run the UsersController#show method
+- Create a users controller.
+- Note: If you use the generators to generate your controllers, be sure to pass the --no-test-framework flag to avoid generating unneeded files: rails g controller Users --no-test-framework
+- Make a UsersController#show method. It should:
+- Find a user in the database using the user id from the session hash
+- Return the user as a JSON object
+
+<2022-11-04 Fri 13:22>: I then made the following adjustments to the 'config/routes.rb' routes file:
+#+begin_src ruby
+Rails.application.routes.draw do
+  resources :articles, only: [:index, :show]
+  # For details on the DSL available within this file, see https://guides.rubyonrails.org/routing.html
+  post "/login", to: "sessions#create"
+  delete "/logout", to: "sessions#destroy"
+end
+
+#+end_src
+
+I then created a sessions controller with the 'rails g controller sessions --no-test-framework' command:
+#+begin_src bash
+samuelbanya@Samuels-MBP ~/hub/Development/code/phase-4/phase-4-authenticating-users-lab $ rails g controller Sessions --no-test-framework
+      create  app/controllers/sessions_controller.rb
+#+end_src
+
+I then modified the contents of the 'app/controllers/sessions_controller.rb' Sessions Controller file with the following:
+#+begin_src ruby
+class SessionsController < ApplicationController
+    def create
+        # Find a user in the database using the username from params
+        user = User.find_by(username: params[:username])
+        # Save the user's ID to the session hash
+        session[:user_id] = user.id
+        # Return the user as a JSON object
+        render json: user
+    end
+
+    def destroy
+        # Remove the user ID from the session hash
+        session.delete :user_id
+        # Return an empty response with a 204 No Content status code
+        head :no_content
+    end
+end
+#+end_src
+
+I then modified the contents of the 'config/routes.rb' routes file to accommodate the '/me' route to allow the user to re-login to the application upon refreshing the page with the following:
+#+begin_src ruby
+Rails.application.routes.draw do
+  resources :articles, only: [:index, :show]
+  # For details on the DSL available within this file, see https://guides.rubyonrails.org/routing.html
+  post "/login", to: "sessions#create"
+  delete "/logout", to: "sessions#destroy"
+  get "/me", to: "users#show"
+end
+#+end_src
+
+I then generated the 'Users' controller with the 'rails g controllers Users --no-test-framework' command:
+#+begin_src bash
+samuelbanya@Samuels-MBP ~/hub/Development/code/phase-4/phase-4-authenticating-users-lab $ rails g controller Users --no-test-framework
+      create  app/controllers/users_controller.rb
+#+end_src
+
+I then modified the 'app/controllers/users_controller.rb' file with the following contents after my first attempt:
+#+begin_src ruby
+class UsersController < ApplicationController
+    def show
+        user = User.find(session[:user_id])
+        render json: user
+    end
+end
+#+end_src
